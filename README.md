@@ -10,3 +10,4 @@ sorted way.
 You can search anything by changing the value of the variable 'search_term' while calling the main function. 
 You can change the value of the variable 'csv_filename" to get distinct csv files and HTML pages for distinct datasets, different search terms.
 Don't forget to change the variables 'username' and 'password' according to your valid twitter account to successfully login to twitter and get the proper reulst. 
+data.csv and index.html are generated according to search term 'request for startup', you can delete those files and update the search term for your own use.
