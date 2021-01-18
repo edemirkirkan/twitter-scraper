@@ -6,7 +6,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 from msedge.selenium_tools import Edge, EdgeOptions
 
-
 def get_tweet_data(tweet):
     # Extract data from twitter
     try:
@@ -61,27 +60,55 @@ def get_tweet_data(tweet):
     tweet_data = [author, num_retweet, num_like, num_reply, str(date), content]
     return tweet_data
 
-def write_data_into_csv(csv_filename, data):
-    #  write all of the tweet data into a new csv file
-    with open(csv_filename, 'w', newline='', encoding='utf-8') as file:
-        header = ["Author", "Retweets", "Likes", "Comments", "Timestamp", "Content"]
+def clean_sort_write_data_into_csv(csv_filename, data):
+    # write untouched data to file named dirty_data
+    with open('dirty_data.csv', 'w', newline='', encoding='utf-8') as file:
+        header = ['Author', 'Retweets', 'Likes', 'Comments', 'Timestamp', 'Content']
         writer = csv.writer(file)
         writer.writerow(header)
         writer.writerows(data)
+        
+    # clean non-integer rows of 'Retweets', 'Likes', 'Comments' columns, write new data to file named cleaned_data
+    with open('dirty_data.csv', 'r', newline='', encoding='utf-8') as csvfile, open('cleaned_data.csv', 'w', encoding='utf-8') as out:
+        fieldnames = ['Author', 'Retweets', 'Likes', 'Comments', 'Timestamp', 'Content']
+        writer = csv.DictWriter(out, fieldnames=fieldnames)
+        reader = csv.DictReader(csvfile)
+        writer.writeheader()
+        for row in reader:
+            try:
+                int(row['Retweets']) 
+                int(row['Likes']) 
+                int(row['Comments'])
+                writer.writerow(row)
+            except ValueError:
+                continue
+                
+    # read the clean data, sort it, and write it to output csv file
+    with open('cleaned_data.csv', newline='', encoding='utf-8') as csvfile, open(csv_filename, 'w', encoding='utf-8') as f:
+        reader = csv.DictReader(csvfile)
+           
+        sortedlist = sorted(reader, key=lambda row:(int(row['Retweets']),int(row['Likes']),int(row['Comments'])), reverse=True)
 
-def generate_and_open_HTML(csv_filename):
+        fieldnames = ['Author', 'Retweets', 'Likes', 'Comments', 'Timestamp', 'Content']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in sortedlist:
+            writer.writerow(row)
+            
+    # delete the uncleaned and unsorted data
+    os.remove('dirty_data.csv')
+    os.remove('cleaned_data.csv')
+
+def generate_and_open_HTML(csv_filename, html_filename):
     # uniform the style
     pd.set_option('display.width', 1000)
     pd.set_option('colheader_justify', 'center')
+
     # create pandas DataFrame object from the data of csv file
     data_frame = pd.read_csv(csv_filename)
-    # sort by total number of retweets, likes, and discussions and then date in descending order
-    sorted_data_frame = data_frame.sort_values(by=["Retweets", "Likes", "Comments", "Timestamp"], ascending=False)
-    # reseting index of the data frame after sorting
-    sorted_data_frame.reset_index(drop=True, inplace=True)
 
     # create string of the HTML table 
-    table = sorted_data_frame.to_html(classes='mystyle')
+    table = data_frame.to_html(classes='mystyle')
 
     # merge it with the necesarry HTML tags
     html_string = f'''
@@ -95,18 +122,18 @@ def generate_and_open_HTML(csv_filename):
     </body>
     </html>.
     '''
-
+    
     # generate the HTML file, write the data from data frame to HTML file
-    with open('index.html', 'w', encoding='utf-8') as file:
+    with open(html_filename, 'w', encoding='utf-8') as file:
         file.write(html_string)
 
     # open the HTML page with a proper URL
-    path = os.path.abspath('index.html')
+    path = os.path.abspath(html_filename)
     url = 'file://' + path
     webbrowser.open(url)
 
 
-def main(username, password, csv_filename, search_term="request for startup"):
+def main(username, password, search_term="request for startup"):
     # automation process is described below
 
     # opening browser
@@ -143,7 +170,7 @@ def main(username, password, csv_filename, search_term="request for startup"):
     last_position = driver.execute_script("return window.pageYOffset;")
     scrolling = True
 
-    #  keep scrolling until all of the tweets about the topic are being recorded in the Latest tab
+    # keep scrolling until all of the tweets about the topic are being recorded in the Latest tab
     while scrolling:
         tweets = driver.find_elements_by_xpath('//div[@data-testid="tweet"]')
         for tweet in tweets:
@@ -174,21 +201,25 @@ def main(username, password, csv_filename, search_term="request for startup"):
             else:
                 last_position = current_position
                 break
+                
     # after we obtain all the data, close the browser
     driver.quit()
 
+    # give a unique name to a output of each distinct searches, datasets
+    csv_filename = search_term + ".csv"
+    html_filename = search_term + ".html"
+    
     # store all the data in csv file and display in html page
-    write_data_into_csv(csv_filename, data)
-    generate_and_open_HTML(csv_filename)
+    clean_sort_write_data_into_csv(csv_filename, data)
+    generate_and_open_HTML(csv_filename, html_filename)
 
 
 if __name__ == "__main__":
-    # Enter a valid twitter account to obtain the data
+    # enter a valid twitter account to obtain the data
     username = "username@gmail.com"  # Username, e-mail, phone number
-    password = "***********"  # Password
-    # Desired csv file name, you can change this in every run to obtain distinct data in distinct files
-    csv_filename = "desired_filename.csv"
-    # You can obtain data about any kind of topic by passing this variable to main function
+    password = "************"  # Password
+   
+    # you can obtain data about any kind of topic by passing this variable to main function
     search_term = "any kind of topic"
 
-    main(username, password, csv_filename)
+    main(username, password)
