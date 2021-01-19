@@ -1,7 +1,7 @@
 # nmNHebKLz5leG2IY
 <h1>Twitter Scraper<h1/>
 
-• Twitter Scraper is developed with Python using Selenium, Pandas, and XPath.<br/>
+• Twitter Scraper is developed with Python using frameworks Selenium, Pandas, and XPath.<br/>
 • The app extracts relevant data fields of the tweets that is written about desired search input by automating the search process and web scraping. <br/>
 • Store the scraped tweet data into a csv file, and display them on an HTML page in a desired sorted way. <br/>
 
